@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+</head>
+<body>
+    <h1>Chatbot</h1>
+    <form method="POST">
+        <label for="user_input">You:</label>
+        <input type="text" id="user_input" name="user_input" required>
+        <button type="submit">Send</button>
+    </form>
+    {% if user_input %}
+        <div>
+            <h2>You:</h2>
+            <p>{{ user_input }}</p>
+        </div>
+        <div>
+            <h2>Bot:</h2>
+            <p>{{ response }}</p>
+        </div>
+    {% endif %}
+</body>
+</html>
