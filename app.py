@@ -1,30 +1,47 @@
-from flask import Flask, render_template, request
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from flask import Flask, render_template, request, session, jsonify
+import openai
 from dotenv import load_dotenv
 import os
+import logging
 
-# Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.getenv('SECRET_KEY')
 
-# Load the LLaMA 3 model and tokenizer
-model_name = 'meta-llama/Meta-Llama-3-8B-Instruct'
-hf_token = os.getenv('HUGGINGFACE_TOKEN')
+logging.basicConfig(level=logging.DEBUG)
 
-tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=hf_token)
-model = AutoModelForCausalLM.from_pretrained(model_name, use_auth_token=hf_token)
+
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
 @app.route("/", methods=['GET', 'POST'])
+def index():
+    if 'chat_history' not in session:
+        session['chat_history'] = []
+    return render_template('chat.html', chat_history=session['chat_history'])
+
+@app.route("/chat", methods=['POST'])
 def chat():
-    if request.method == 'POST':
-        user_input = request.form['user_input']
-        inputs = tokenizer.encode(user_input, return_tensors='pt')
-        outputs = model.generate(inputs, max_length=100)
-        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        return render_template('chat.html', user_input=user_input, response=response)
-    return render_template('chat.html')
+    if 'chat_history' not in session:
+        session['chat_history'] = []
+        
+    user_input = request.form['user_input']
+    try:
+        session['chat_history'].append({"role": "user", "content": user_input})
+        
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=session['chat_history']
+        )
+        response_text = response.choices[0].message['content']
+        
+        session['chat_history'].append({"role": "assistant", "content": response_text})
+    except Exception as e:
+        app.logger.error(f"Error occurred: {e}")
+        response_text = f"An error occurred: {e}"
+        session['chat_history'].append({"role": "assistant", "content": response_text})
+    
+    return jsonify(session['chat_history'])
 
 if __name__ == '__main__':
     app.run(debug=True)

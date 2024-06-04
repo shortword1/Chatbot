@@ -3,24 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatbot</title>
+    <title>Chat with AI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #63d1b7ab;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .chat-container {
+            background-color: #ffffff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            width: 400px;
+            max-width: 100%;
+            padding: 20px;
+        }
+        .chat-header {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #333;
+        }
+        .chat-box {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 15px;
+        }
+        .message.user {
+            text-align: right;
+        }
+        .message .text {
+            display: inline-block;
+            padding: 10px 15px;
+            border-radius: 20px;
+            max-width: 75%;
+        }
+        .message.user .text {
+            background-color: #007bff;
+            color: #fff;
+        }
+        .message.assistant .text {
+            background-color: #e9ecef;
+            color: #333;
+        }
+        .input-container {
+            display: flex;
+        }
+        .input-container input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px 0 0 20px;
+            outline: none;
+        }
+        .input-container input[type="submit"] {
+            padding: 10px 20px;
+            border: none;
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 0 20px 20px 0;
+            cursor: pointer;
+            outline: none;
+        }
+        .input-container input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+    </style>
+    <script>
+        function sendMessage(event) {
+            event.preventDefault();
+            const userInput = document.getElementById('user_input').value;
+            if (userInput.trim() === '') {
+                return;
+            }
+
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'user_input': userInput
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const chatBox = document.getElementById('chat-box');
+                // Clear the input field
+                document.getElementById('user_input').value = '';
+                // Append new messages to the chat box
+                data.forEach(message => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.classList.add('message', message.role);
+                    const textDiv = document.createElement('div');
+                    textDiv.classList.add('text');
+                    textDiv.textContent = message.content;
+                    messageDiv.appendChild(textDiv);
+                    chatBox.appendChild(messageDiv);
+                });
+                // Scroll to the bottom of the chat box
+                chatBox.scrollTop = chatBox.scrollHeight;
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
 </head>
 <body>
-    <h1>Chatbot</h1>
-    <form method="POST">
-        <label for="user_input">You:</label>
-        <input type="text" id="user_input" name="user_input" required>
-        <button type="submit">Send</button>
-    </form>
-    {% if user_input %}
-        <div>
-            <h2>You:</h2>
-            <p>{{ user_input }}</p>
+    <div class="chat-container">
+        <div class="chat-header">Chat with AI</div>
+        <div class="chat-box" id="chat-box">
+            {% for message in chat_history %}
+                <div class="message {{ message.role }}">
+                    <div class="text">{{ message.content }}</div>
+                </div>
+            {% endfor %}
         </div>
-        <div>
-            <h2>Bot:</h2>
-            <p>{{ response }}</p>
-        </div>
-    {% endif %}
+        <form method="post" class="input-container" onsubmit="sendMessage(event)">
+            <input type="text" id="user_input" name="user_input" placeholder="Type your message here...">
+            <input type="submit" value="Send">
+        </form>
+    </div>
 </body>
 </html>
